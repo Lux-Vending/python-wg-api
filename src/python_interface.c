@@ -292,10 +292,24 @@ int get_devices(char *device_list, unsigned long int max_size)
           length += snprintf(device_list+length,max_size - length,"\"keepalive\" : %d,",peer->persistent_keepalive_interval);
           if (length != strlen(device_list)) return -1;
         }
+        if (peer->first_allowedip) {
+          length += snprintf(device_list+length,max_size - length,"\"allowed_ips\":[");
+          wg_for_each_allowedip(peer,peer->first_allowedip){
+            length += snprintf(device_list+length,max_size - length,"\"%s/%u\",",inet_ntoa(peer->first_allowedip->ip4),peer->first_allowedip->cidr);
+          }
+          length += snprintf(device_list+length-1,max_size - length-1,"],") -1;
+          
+          //if (!allowedip)
+          //  allowedip = peer->first_allowedip;
+        }
+          
+          
         length += snprintf(device_list+length,max_size - length,"\"rx_bytes\" : %lu,",peer->rx_bytes);
         if (length != strlen(device_list)) return -1;
+
         length += snprintf(device_list+length,max_size - length,"\"tx_bytes\" : %lu,",peer->tx_bytes);
         if (length != strlen(device_list)) return -1;
+
         strftime(buf, tmpsize, "%Y-%m-%d %H:%M:%S", gmtime(&peer->last_handshake_time.tv_sec));
         length += snprintf(device_list+length,max_size - length,"\"last_handshake_time\": \"%s.%09ld\"},{",buf,peer->last_handshake_time.tv_nsec);
         if (length != strlen(device_list)) return -1;
