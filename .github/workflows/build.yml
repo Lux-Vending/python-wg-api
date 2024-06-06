@@ -14,7 +14,7 @@ env:
 
 jobs:
   build-dev-package:
-    Name: Build debian package
+    name: Build debian package
     if: github.ref_type == 'branch'
     runs-on: ${{ matrix.os }}
     strategy:
