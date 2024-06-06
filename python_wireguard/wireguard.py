@@ -72,9 +72,9 @@ def list_devices():
     '''
     Print a list of all Wireguard network devices.
     '''
-    
+
     c_library.list_devices()
-    
+
 def get_devices(max_size=10000):
     '''
     get a list of  all Wireguard network devices.
