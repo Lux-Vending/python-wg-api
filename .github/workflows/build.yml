@@ -1,3 +1,5 @@
+name: Build debian package
+
 on:
   push:
 #    paths:
@@ -53,8 +55,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt install -y python3-venv
-          python -m pip install --user --upgrade build
+          #sudo apt install -y python3-venv
+          #python -m pip install --user --upgrade build
+          python -m pip install --upgrade pip
+          pip install build
 
       - name: Setup some variables
         run: |
@@ -65,11 +69,19 @@ jobs:
         run: |
           pkg_file_name=python-wg-api_*${{ matrix.codename }}${{ matrix.major }}_all.deb
           echo "PKG_FILE_NAME=$pkg_file_name" >> $GITHUB_ENV
-          echo DSTDIR=$DSTDIR
+          DSTDIR=".debpkg/usr/lib/python3/dist-packages/"
+          echo DSTDIR="$DSTDIR" >>$GITHUB_ENV
+          echo "DSTDIR=$DSTDIR"
+
+      - name: Debug output
+        run: |
+          echo pwd
+          pwd
+          echo ls -alh
+          ls -alh
+          echo
 
       - name: Prep the code
-        # env:
-          # RELEASE_VERSION: ${{ github.event.release.tag_name }}
         run: |
           python3 -m build
           PKGFILE=$(eval ls dist/python_wg_api*whl)
