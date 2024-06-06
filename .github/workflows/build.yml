@@ -7,7 +7,7 @@ on:
       - 'main'
 
 env:
-  APP_VERSION: '0.0.0-0.1'
+  RELEASE_VERSION: '0.3.0'
   ARCH: 'all'
   MAINTAINER: 'bofh@bitaccess.co'
   DESC: 'bitaccess wireguard api'
@@ -68,6 +68,8 @@ jobs:
           echo DSTDIR=$DSTDIR
 
       - name: Prep the code
+        # env:
+          # RELEASE_VERSION: ${{ github.event.release.tag_name }}
         run: |
           python3 -m build
           PKGFILE=$(eval ls dist/python_wg_api*whl)
