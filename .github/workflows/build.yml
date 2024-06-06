@@ -62,16 +62,15 @@ jobs:
           # echo "APP_VERSION=$(< ${{ github.workspace }}/Release_notes.txt awk -F: '/^[0-9]/{print $1}'|tail -1)" >> $GITHUB_ENV
 
       - name: Set package filename env variable
-        # infisical-api_2024.05.22-1.0focal20_all.deb
         run: |
-          pkg_file_name=infisical-api_*${{ matrix.codename }}${{ matrix.major }}_all.deb
+          pkg_file_name=python-wg-api_*${{ matrix.codename }}${{ matrix.major }}_all.deb
           echo "PKG_FILE_NAME=$pkg_file_name" >> $GITHUB_ENV
           echo DSTDIR=$DSTDIR
 
       - name: Prep the code
         run: |
           python3 -m build
-          PKGFILE=$(eval ls dist/infisical_api*whl)
+          PKGFILE=$(eval ls dist/python_wg_api*whl)
           mkdir -p $DSTDIR
           sudo python3 -m pip install $PKGFILE --target $DSTDIR
           sudo chown -R root:root $DSTDIR
