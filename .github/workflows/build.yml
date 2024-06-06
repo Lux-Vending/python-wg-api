@@ -14,16 +14,12 @@ env:
 
 jobs:
   build-dev-package:
+    Name: Build debian package
     if: github.ref_type == 'branch'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          # - os: ubuntu-16.04 # 16 is no longer available as an os version
-          # - os: ubuntu-18.04 # 18 goes away on 2022-12-31 - https://github.com/actions/runner-images/issues/6002
-          # - os: ubuntu-20.04
-          #   codename: xenial
-          #   major: 16
           - os: ubuntu-20.04
             codename: focal
             major: 20
@@ -51,6 +47,10 @@ jobs:
           #python-version: "3.8.0 - 3.10.0"
           python-version: ">=3.8"
       - run: echo 'python version is; ${{ steps.pythonversion.outputs.python-version }}'
+
+      - name: Build shared library
+        run: make
+
       - name: Install dependencies
         run: |
           sudo apt install -y python3-venv
