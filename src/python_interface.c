@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 /**
  * Generate a private key and store it in result.
@@ -178,6 +180,7 @@ void list_devices(void)
         perror("Unable to get device names");
         exit(1);
     }
+    
     wg_for_each_device_name(device_names, device_name, len) {
         wg_device *device;
         wg_peer *peer;
@@ -199,4 +202,110 @@ void list_devices(void)
         wg_free_device(device);
     }
     free(device_names);
+}
+
+// BUG/TODO: check max_size!!!
+int get_devices(char *device_list, unsigned long int max_size)
+{
+    char *device_names, *device_name;
+    size_t len;
+    char buf[31];
+    const int tmpsize = 21;
+    unsigned long int length;
+
+    max_size-=1; //make sure \0 fits
+    if (max_size <= 2){
+      //Can't create any message with such a small buffer
+      //not even an error message
+      return -1;
+    }
+
+    device_names = wg_list_device_names();
+    if (!device_names) {
+      strcpy(device_list,"{}");
+      return 0;
+    }
+
+    strcpy(device_list,"{");
+    length=1;
+    wg_for_each_device_name(device_names, device_name, len) {
+      wg_device *device;
+      wg_peer *peer;
+      wg_key_b64_string key;
+
+      if (wg_get_device(&device, device_name) < 0) {
+        //perror("Unable to get device");
+        continue;
+      }
+      length += snprintf(device_list+length,max_size-length,"\"%s\":{",device_name);
+      if (length != strlen(device_list)) return -1;
+
+      length += snprintf(device_list+length,max_size-length,"\"ifindex\" : %d,",device->ifindex);
+      if (length != strlen(device_list)) return -1;
+
+      length += snprintf(device_list+length,max_size-length,"\"flags\": %d,",device->flags);
+      if (length != strlen(device_list)) return -1;
+
+      if (device->flags & WGDEVICE_HAS_PRIVATE_KEY) {
+        wg_key_to_base64(key,device->private_key);
+        length += snprintf(device_list+length,max_size-length,"\"private_key\" : \"%s\",",key);
+        if (length != strlen(device_list)) return -1;
+      }
+
+      if (device->flags & WGDEVICE_HAS_PUBLIC_KEY) {
+        wg_key_to_base64(key, device->public_key);
+        length += snprintf(device_list+length,max_size-length,"\"public_key\" : \"%s\",",key);
+        if (length != strlen(device_list)) return -1;
+      }
+
+      if (device->flags & WGDEVICE_HAS_LISTEN_PORT) {
+        length += snprintf(device_list+length,max_size-length,"\"listen_port\" : %d,",device->listen_port);
+        if (length != strlen(device_list)) return -1;
+      }
+
+      if (device->flags & WGDEVICE_HAS_FWMARK) {
+        length += snprintf(device_list+length,max_size - length,"\"fwmark\" : %d,",device->fwmark);
+        if (length != strlen(device_list)) return -1;
+      }
+
+      length += snprintf(device_list+length,max_size - length,"\"peers\":[{");
+      if (length != strlen(device_list)) return -1;
+
+      //printf("DEBUG: %s",device_list);
+      wg_for_each_peer(device, peer) {
+        wg_key_to_base64(key, peer->public_key);
+        if (peer->flags & WGPEER_HAS_PUBLIC_KEY) {
+          wg_key_to_base64(key,peer->public_key);
+          length += snprintf(device_list+length,max_size - length,"\"public_key\" : \"%44s\",",key);
+          if (length != strlen(device_list)) return -1;
+        }
+        if (peer->flags & WGPEER_HAS_PRESHARED_KEY) {
+          wg_key_to_base64(key,peer->preshared_key);
+          length += snprintf(device_list+length,max_size - length,"\"preshared_key\"  : \"%44s\",",key);
+          if (length != strlen(device_list)) return -1;
+        }
+        if (peer->endpoint.addr.sa_family == AF_INET) {
+          length += snprintf(device_list+length,max_size - length,"\"endpoint\" : \"%s\",",inet_ntoa(peer->endpoint.addr4.sin_addr));
+          if (length != strlen(device_list)) return -1;
+        }
+        if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL){
+          length += snprintf(device_list+length,max_size - length,"\"keepalive\" : %d,",peer->persistent_keepalive_interval);
+          if (length != strlen(device_list)) return -1;
+        }
+        length += snprintf(device_list+length,max_size - length,"\"rx_bytes\" : %lu,",peer->rx_bytes);
+        if (length != strlen(device_list)) return -1;
+        length += snprintf(device_list+length,max_size - length,"\"tx_bytes\" : %lu,",peer->tx_bytes);
+        if (length != strlen(device_list)) return -1;
+        strftime(buf, tmpsize, "%Y-%m-%d %H:%M:%S", gmtime(&peer->last_handshake_time.tv_sec));
+        length += snprintf(device_list+length,max_size - length,"\"last_handshake_time\": \"%s.%09ld\"},{",buf,peer->last_handshake_time.tv_nsec);
+        if (length != strlen(device_list)) return -1;
+      }
+      
+      length += snprintf(device_list+length-2,max_size - length - 2,"]},")-2; // strip off the last ",{"
+      if (length != strlen(device_list)) return -1;
+      wg_free_device(device);
+    }
+    free(device_names);
+    device_list[length-1]='}'; // replace "}," with "}}"
+    return 0;
 }

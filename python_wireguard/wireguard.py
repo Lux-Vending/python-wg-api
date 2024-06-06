@@ -72,7 +72,16 @@ def list_devices():
     '''
     Print a list of all Wireguard network devices.
     '''
+
     c_library.list_devices()
+
+def get_devices(max_size=10000):
+    '''
+    get a list of  all Wireguard network devices.
+    '''
+    res = create_string_buffer(b'\000' * max_size)
+    c_library.get_devices(res,max_size)
+    return res.value.decode()
 
 def key_to_base64(key):
     '''

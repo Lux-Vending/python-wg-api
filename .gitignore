@@ -4,3 +4,6 @@ dist
 dist/*
 .coverage
 pytest.xml
+non-repo-files
+*~
+*-BAK
