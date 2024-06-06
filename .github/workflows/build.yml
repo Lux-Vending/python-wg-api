@@ -1,0 +1,122 @@
+on:
+  push:
+#    paths:
+#      - 'Release_notes.txt'
+#      - 'test_action'
+    branches:
+      - 'master'
+
+env:
+  APP_VERSION: '0.0.0-0.1'
+  ARCH: 'all'
+  MAINTAINER: 'bofh@bitaccess.co'
+  DESC: 'bitaccess wireguard api'
+
+jobs:
+  build-dev-package:
+    if: github.ref_type == 'branch'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # - os: ubuntu-16.04 # 16 is no longer available as an os version
+          # - os: ubuntu-18.04 # 18 goes away on 2022-12-31 - https://github.com/actions/runner-images/issues/6002
+          # - os: ubuntu-20.04
+          #   codename: xenial
+          #   major: 16
+          - os: ubuntu-20.04
+            codename: focal
+            major: 20
+          - os: ubuntu-22.04
+            codename: jammy
+            major: 22
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Extract branch name
+        shell: bash
+        #run: echo "branch=$(echo ${GITHUB_REF_NAME//\//_})" >> $GITHUB_OUTPUT
+        #id: extract_branch
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF_NAME//\//_})"
+        id: extract_branch
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        id: pythonversion
+        with:
+          #python-version: '3.5.2' #ubuntu 16
+          #python-version: '3.8.10' #ubuntu 20
+          #python-version: '3.8' #ubuntu 20
+          #python-version: "3.8.0 - 3.10.0"
+          python-version: ">=3.8"
+      - run: echo 'python version is; ${{ steps.pythonversion.outputs.python-version }}'
+      - name: Install dependencies
+        run: |
+          sudo apt install -y python3-venv
+          python -m pip install --user --upgrade build
+
+      - name: Setup some variables
+        run: |
+          echo "APP_NAME=${GITHUB_REPOSITORY#*\/}"  >> $GITHUB_ENV
+          # echo "APP_VERSION=$(< ${{ github.workspace }}/Release_notes.txt awk -F: '/^[0-9]/{print $1}'|tail -1)" >> $GITHUB_ENV
+
+      - name: Set package filename env variable
+        # infisical-api_2024.05.22-1.0focal20_all.deb
+        run: |
+          pkg_file_name=infisical-api_*${{ matrix.codename }}${{ matrix.major }}_all.deb
+          echo "PKG_FILE_NAME=$pkg_file_name" >> $GITHUB_ENV
+          echo DSTDIR=$DSTDIR
+
+      - name: Prep the code
+        run: |
+          python3 -m build
+          PKGFILE=$(eval ls dist/infisical_api*whl)
+          mkdir -p $DSTDIR
+          sudo python3 -m pip install $PKGFILE --target $DSTDIR
+          sudo chown -R root:root $DSTDIR
+          find $DSTDIR -ls
+          
+          echo
+          echo "package: ${{ env.APP_NAME }}"
+          echo "package_root: .debpkg"
+          echo "maintainer: ${{ env.MAINTAINER }}"
+          echo "version: ${{ env.APP_VERSION }}${{ matrix.codename }}${{ matrix.major }}"
+          echo "arch: ${{ env.ARCH }}"
+          echo "desc: ${{ env.DESC }}"
+
+      - name: build
+        id: build
+        uses: jiro4989/build-deb-action@v2
+        with:
+          package: ${{ env.APP_NAME }}
+          package_root: .debpkg
+          maintainer: ${{ env.MAINTAINER }}
+          version: ${{ env.APP_VERSION }}${{ matrix.codename }}${{ matrix.major }}
+          arch: ${{ env.ARCH }}
+          depends: 'python3 (>=3.8)'
+          desc: ${{ env.DESC }}
+
+      - name: verify
+        run: |
+          echo pwd
+          pwd
+          echo
+          echo ls -l
+          ls -l
+          echo
+          echo "dpkg -c python-wg-api*.deb"
+          dpkg -c python-wg-api*.deb
+          echo
+          echo "ls -l $PKG_FILE_NAME"
+          ls -l $PKG_FILE_NAME
+
+      # scp the deb package to the package repo
+      - name: upload file
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.DEB_REPO_HOST }}
+          username: ${{ secrets.DEB_REPO_USERNAME }}
+          key: ${{ secrets.DEB_REPO_KEY }}
+          source: ${{env.PKG_FILE_NAME}}
+          target: ${{ secrets.DEB_REPO_PATH }}/${{ steps.extract_branch.outputs.branch }}
