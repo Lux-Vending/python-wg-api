@@ -211,6 +211,7 @@ void get_devices(char *device_list, uint max_size)
     size_t len;
     char buf[31];
     const int tmpsize = 21;
+    uint cx;
 
     device_list[0]='\0';
 
@@ -222,55 +223,70 @@ void get_devices(char *device_list, uint max_size)
 
     strcpy(device_list,"{");
     wg_for_each_device_name(device_names, device_name, len) {
-        wg_device *device;
-        wg_peer *peer;
-        wg_key_b64_string key;
+      wg_device *device;
+      wg_peer *peer;
+      wg_key_b64_string key;
 
-        sprintf(device_list,"%s\"%s\":{",device_list,device_name);
-        //sprintf(device_list,"%s\"name\" : \"%s\",",device_list,device->name);
-        sprintf(device_list,"%s\"ifindex\" : %d,",device_list,device->ifindex);
-        sprintf(device_list,"%s\"flags\": %d,",device_list,device->flags);
-        wg_key_to_base64(key,device->public_key);
-        sprintf(device_list,"%s\"public_key\" : \"%s\",",device_list,key);
-        wg_key_to_base64(key,device->private_key);
-        sprintf(device_list,"%s\"private_key\" : \"%s\",",device_list,key);
-        sprintf(device_list,"%s\"fwmark\" : %d,",device_list,device->fwmark);
-        sprintf(device_list,"%s\"listen_port\" : %d,\"peers\":[{",device_list,device->listen_port);
-        if (wg_get_device(&device, device_name) < 0) {
-          //perror("Unable to get device");
-            continue;
-        }
+      if (wg_get_device(&device, device_name) < 0) {
+        //perror("Unable to get device");
+        continue;
+      }
 
-        if (device->flags & WGDEVICE_HAS_PUBLIC_KEY) {
-            wg_key_to_base64(key, device->public_key);
+      cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"%s\":{",device_name);
+      if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
+      //sprintf(device_list,"%s\"name\" : \"%s\",",device->name);
+      cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"ifindex\" : %d,",device->ifindex);
+      if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
+      cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"flags\": %d,",device->flags);
+      if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
+      wg_key_to_base64(key,device->public_key);
+      cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"public_key\" : \"%s\",",key);
+      if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
+      wg_key_to_base64(key,device->private_key);
+      cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"private_key\" : \"%s\",",key);
+      if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
+      cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"fwmark\" : %d,",device->fwmark);
+      if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
+      cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"listen_port\" : %d,\"peers\":[{",device->listen_port);
+      if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
+      //printf("DEBUG: %s",device_list);
+      if (device->flags & WGDEVICE_HAS_PUBLIC_KEY) {
+        wg_key_to_base64(key, device->public_key);
+      }
+      wg_for_each_peer(device, peer) {
+        wg_key_to_base64(key, peer->public_key);
+        if (peer->flags & WGPEER_HAS_PUBLIC_KEY) {
+          wg_key_to_base64(key,peer->public_key);
+          cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"public_key\" : \"%44s\",",key);
+          if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
         }
-
-        wg_for_each_peer(device, peer) {
-            wg_key_to_base64(key, peer->public_key);
-            if (peer->flags & WGPEER_HAS_PUBLIC_KEY) {
-              wg_key_to_base64(key,peer->public_key);
-              sprintf(device_list,"%s\"public_key\" : \"%s\",",device_list,key);
-            }
-            if (peer->flags & WGPEER_HAS_PRESHARED_KEY) {
-              wg_key_to_base64(key,peer->preshared_key);
-              sprintf(device_list,"%s\"preshared_key\"  : \"%s\",",device_list,key);
-            }
-            if (peer->endpoint.addr.sa_family == AF_INET) {
-              sprintf(device_list,"%s\"endpoint\" : \"%s\",",device_list,inet_ntoa(peer->endpoint.addr4.sin_addr));
-            }
-            if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL){
-              sprintf(device_list,"%s\"keepalive\" : %d,",device_list,peer->persistent_keepalive_interval);
-            }
-            sprintf(device_list,"%s\"rx_bytes\" : %lu,",device_list,peer->rx_bytes);
-            sprintf(device_list,"%s\"tx_bytes\" : %lu,",device_list,peer->tx_bytes);
-            strftime(buf, tmpsize, "%Y-%m-%d %H:%M:%S", gmtime(&peer->last_handshake_time.tv_sec));
-            sprintf(device_list,"%s\"last_handshake_time\": \"%s.%09ld\"},{",device_list,buf,peer->last_handshake_time.tv_nsec);
+        if (peer->flags & WGPEER_HAS_PRESHARED_KEY) {
+          wg_key_to_base64(key,peer->preshared_key);
+          cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"preshared_key\"  : \"%44s\",",key);
+          if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
         }
-        wg_free_device(device);
+        if (peer->endpoint.addr.sa_family == AF_INET) {
+          cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"endpoint\" : \"%s\",",inet_ntoa(peer->endpoint.addr4.sin_addr));
+          if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
+        }
+        if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL){
+          cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"keepalive\" : %d,",peer->persistent_keepalive_interval);
+          if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
+        }
+        cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"rx_bytes\" : %lu,",peer->rx_bytes);
+        if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
+        cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"tx_bytes\" : %lu,",peer->tx_bytes);
+        if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
+        strftime(buf, tmpsize, "%Y-%m-%d %H:%M:%S", gmtime(&peer->last_handshake_time.tv_sec));
+        cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"\"last_handshake_time\": \"%29s.%09ld\"},{",buf,peer->last_handshake_time.tv_nsec);
+        if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
+      }
+      device_list[strlen(device_list)-2] = '\0';
+      cx=snprintf(device_list+strlen(device_list),max_size-strlen(device_list),"]},");
+      if (cx<0 || max_size-strlen(device_list)<=2){strcpy(device_list,"{\"error\":\"overflow\"}");return;}
+      wg_free_device(device);
     }
     free(device_names);
     device_list[strlen(device_list)-2] = '\0';
-    strcat(device_list,"]}}");
-    //printf("DEBUG1: length is %lu\n",strlen(device_list));
-    //printf("DEBUG2: json:\n\n%s\n\n",device_list);
+    strcat(device_list,"}}");
 }
