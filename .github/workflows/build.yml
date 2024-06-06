@@ -4,7 +4,7 @@ on:
 #      - 'Release_notes.txt'
 #      - 'test_action'
     branches:
-      - 'master'
+      - 'main'
 
 env:
   APP_VERSION: '0.0.0-0.1'
