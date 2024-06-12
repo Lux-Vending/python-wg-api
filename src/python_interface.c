@@ -233,6 +233,7 @@ int get_devices(char *device_list, unsigned long int max_size)
       wg_peer *peer;
       wg_key_b64_string key;
 
+      //printf("DEBUG: %s\n",device_name);
       if (wg_get_device(&device, device_name) < 0) {
         //perror("Unable to get device");
         continue;
@@ -268,57 +269,61 @@ int get_devices(char *device_list, unsigned long int max_size)
         if (length != strlen(device_list)) return -1;
       }
 
-      length += snprintf(device_list+length,max_size - length,"\"peers\":[{");
+      length += snprintf(device_list+length,max_size - length,"\"peers\":[");
       if (length != strlen(device_list)) return -1;
 
-      //printf("DEBUG: %s",device_list);
-      wg_for_each_peer(device, peer) {
-        wg_key_to_base64(key, peer->public_key);
-        if (peer->flags & WGPEER_HAS_PUBLIC_KEY) {
-          wg_key_to_base64(key,peer->public_key);
-          length += snprintf(device_list+length,max_size - length,"\"public_key\" : \"%44s\",",key);
-          if (length != strlen(device_list)) return -1;
-        }
-        if (peer->flags & WGPEER_HAS_PRESHARED_KEY) {
-          wg_key_to_base64(key,peer->preshared_key);
-          length += snprintf(device_list+length,max_size - length,"\"preshared_key\"  : \"%44s\",",key);
-          if (length != strlen(device_list)) return -1;
-        }
-        if (peer->endpoint.addr.sa_family == AF_INET) {
-          length += snprintf(device_list+length,max_size - length,"\"endpoint\" : \"%s\",",inet_ntoa(peer->endpoint.addr4.sin_addr));
-          if (length != strlen(device_list)) return -1;
-        }
-        if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL){
-          length += snprintf(device_list+length,max_size - length,"\"keepalive\" : %d,",peer->persistent_keepalive_interval);
-          if (length != strlen(device_list)) return -1;
-        }
-        if (peer->first_allowedip) {
-          length += snprintf(device_list+length,max_size - length,"\"allowed_ips\":[");
-          wg_for_each_allowedip(peer,peer->first_allowedip){
-            length += snprintf(device_list+length,max_size - length,"\"%s/%u\",",inet_ntoa(peer->first_allowedip->ip4),peer->first_allowedip->cidr);
+      //printf("DEBUG: %s \n",device_list);
+      if (device-> first_peer){
+        length += snprintf(device_list+length,max_size - length,"{");
+        wg_for_each_peer(device, peer) {
+          wg_key_to_base64(key, peer->public_key);
+          if (peer->flags & WGPEER_HAS_PUBLIC_KEY) {
+            wg_key_to_base64(key,peer->public_key);
+            length += snprintf(device_list+length,max_size - length,"\"public_key\" : \"%44s\",",key);
+            if (length != strlen(device_list)) return -1;
           }
-          length += snprintf(device_list+length-1,max_size - length-1,"],") -1;
+          if (peer->flags & WGPEER_HAS_PRESHARED_KEY) {
+            wg_key_to_base64(key,peer->preshared_key);
+            length += snprintf(device_list+length,max_size - length,"\"preshared_key\"  : \"%44s\",",key);
+            if (length != strlen(device_list)) return -1;
+          }
+          if (peer->endpoint.addr.sa_family == AF_INET) {
+            length += snprintf(device_list+length,max_size - length,"\"endpoint\" : \"%s\",",inet_ntoa(peer->endpoint.addr4.sin_addr));
+            if (length != strlen(device_list)) return -1;
+          }
+          if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL){
+            length += snprintf(device_list+length,max_size - length,"\"keepalive\" : %d,",peer->persistent_keepalive_interval);
+            if (length != strlen(device_list)) return -1;
+          }
+          if (peer->first_allowedip) {
+            length += snprintf(device_list+length,max_size - length,"\"allowed_ips\":[");
+            wg_for_each_allowedip(peer,peer->first_allowedip){
+              length += snprintf(device_list+length,max_size - length,"\"%s/%u\",",inet_ntoa(peer->first_allowedip->ip4),peer->first_allowedip->cidr);
+            }
+            length += snprintf(device_list+length-1,max_size - length-1,"],") -1;
           
-          //if (!allowedip)
-          //  allowedip = peer->first_allowedip;
+            //if (!allowedip)
+            //  allowedip = peer->first_allowedip;
+          } // if peer -> first_allowed
+          length += snprintf(device_list+length,max_size - length,"\"rx_bytes\" : %lu,",peer->rx_bytes);
+          if (length != strlen(device_list)) return -1;
+
+          length += snprintf(device_list+length,max_size - length,"\"tx_bytes\" : %lu,",peer->tx_bytes);
+          if (length != strlen(device_list)) return -1;
+
+          strftime(buf, tmpsize, "%Y-%m-%d %H:%M:%S", gmtime(&peer->last_handshake_time.tv_sec));
+          length += snprintf(device_list+length,max_size - length,"\"last_handshake_time\": \"%s.%09ld\"},{",buf,peer->last_handshake_time.tv_nsec);
+          if (length != strlen(device_list)) return -1;
         }
-          
-          
-        length += snprintf(device_list+length,max_size - length,"\"rx_bytes\" : %lu,",peer->rx_bytes);
-        if (length != strlen(device_list)) return -1;
 
-        length += snprintf(device_list+length,max_size - length,"\"tx_bytes\" : %lu,",peer->tx_bytes);
+        length += snprintf(device_list+length-2,max_size - length - 2,"]},")-2; // strip off the last ",{"
         if (length != strlen(device_list)) return -1;
-
-        strftime(buf, tmpsize, "%Y-%m-%d %H:%M:%S", gmtime(&peer->last_handshake_time.tv_sec));
-        length += snprintf(device_list+length,max_size - length,"\"last_handshake_time\": \"%s.%09ld\"},{",buf,peer->last_handshake_time.tv_nsec);
-        if (length != strlen(device_list)) return -1;
-      }
-      
-      length += snprintf(device_list+length-2,max_size - length - 2,"]},")-2; // strip off the last ",{"
-      if (length != strlen(device_list)) return -1;
-      wg_free_device(device);
+        wg_free_device(device);
+      } else {
+        length += snprintf(device_list+length,max_size - length,"]},");
+      } // if peer
     }
+
     free(device_names);
     device_list[length-1]='}'; // replace "}," with "}}"
     return 0;

@@ -9,7 +9,7 @@ on:
       - 'main'
 
 env:
-  RELEASE_VERSION: '0.3.1'
+  RELEASE_VERSION: '0.3.2'
   ARCH: 'all'
   MAINTAINER: 'bofh@bitaccess.co'
   DESC: 'bitaccess wireguard api'
