@@ -29,6 +29,11 @@ def key_pair():
     c_library.generate_public_key(private, public)
     return private, public
 
+def key_pubkey(private):
+    public=empty_key()
+    c_library.generate_public_key(key_from_base64(private), public)
+    return key_to_base64(public)
+
 def create_server(name, port, private_key, local_ip):
     '''
     Create a server-side Wireguard interface. This is a Wireguard instance that listens on a port
