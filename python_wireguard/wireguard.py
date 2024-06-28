@@ -84,6 +84,8 @@ def get_devices(max_size=10000):
     '''
     get a list of  all Wireguard network devices.
     '''
+    if max_size<2:
+        return "",-1
     res = create_string_buffer(max_size)
     rc = c_library.get_devices(res,max_size)
     return res.value.decode(),rc

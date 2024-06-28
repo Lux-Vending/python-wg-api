@@ -3,22 +3,21 @@
 from python_wireguard import wireguard
 import json
 
-#res=wireguard.get_devices(1)
-mem_cache_size=1411
-#mem_cache_size=1552 # works
-#mem_cache_size=1553 # malloc(): corrupted top size
-#mem_cache_size=1585 # malloc(): corrupted top size
-#mem_cache_size=1586 # works
+for max_size in range(-2,5):
+    print(f"maxsize={max_size}")
+    res,rc=wireguard.get_devices(max_size)
+    print(f" maxsize {max_size} return: result='{res}' length result={len(res)}, return code={rc}")
+
+mem_cache_size=4096
 
 while True:
     print(f"mem_cache_size={mem_cache_size}")
-    res=wireguard.get_devices(mem_cache_size)
-    if len(res) < mem_cache_size-10:
+    res,ret=wireguard.get_devices(mem_cache_size)
+    if ret >= 0:
         break
     mem_cache_size = int(mem_cache_size*1.1+1)
-    print(f"  mem_cache_size changed, new size is ={mem_cache_size}, res len={len(res)}")
+    print(f"  mem_cache_size changed, new size is ={mem_cache_size}, res len={len(res)}, return code was {ret}")
 
-#print(f"{type(res)}")
 print(f"length = {len(res)}")
 print(res)
 print()
