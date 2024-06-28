@@ -30,6 +30,9 @@ def key_pair():
     return private, public
 
 def key_pubkey(private):
+    '''
+    Return a public key from a private key
+    '''
     public=empty_key()
     c_library.generate_public_key(key_from_base64(private), public)
     return key_to_base64(public)
@@ -87,8 +90,8 @@ def get_devices(max_size=10000):
     if max_size<2:
         return "",-1
     res = create_string_buffer(max_size)
-    rc = c_library.get_devices(res,max_size)
-    return res.value.decode(),rc
+    returncode = c_library.get_devices(res,max_size)
+    return res.value.decode(),returncode
 
 def key_to_base64(key):
     '''
