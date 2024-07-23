@@ -6,11 +6,11 @@ Simple program to test wireguard.get_devices
 import json
 from python_wireguard import wireguard
 
-for max_size in range(-2,5):
-    print(f"maxsize={max_size}")
-    RESULT,rc=wireguard.get_devices(max_size)
-    # pylint: disable=line-too-long
-    print(f" maxsize {max_size} return: result='{RESULT}' length result={len(RESULT)}, return code={rc}")
+# for max_size in range(-2,5):
+#     print(f"maxsize={max_size}")
+#     RESULT,rc=wireguard.get_devices(max_size)
+#     # pylint: disable=line-too-long
+#     print(f" maxsize {max_size} return: result='{RESULT}' length result={len(RESULT)}, return code={rc}")
 
 MEM_CACHE_SIZE=4096
 

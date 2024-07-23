@@ -211,6 +211,7 @@ int get_devices(char *device_list, unsigned long int max_size)
     char buf[31];
     const int tmpsize = 21;
     unsigned long int length;
+    uint16_t port;
 
     if (max_size <= 2){
       //Can't create any message with such a small buffer
@@ -286,7 +287,8 @@ int get_devices(char *device_list, unsigned long int max_size)
             if (length != strlen(device_list)) return -11;
           }
           if (peer->endpoint.addr.sa_family == AF_INET) {
-            length += snprintf(device_list+length,max_size - length,"\"endpoint\" : \"%s\",",inet_ntoa(peer->endpoint.addr4.sin_addr));
+            port=(peer->endpoint.addr4.sin_port << 8) | (peer->endpoint.addr4.sin_port >> 8);
+            length += snprintf(device_list+length,max_size - length,"\"endpoint\" : \"%s:%d\",",inet_ntoa(peer->endpoint.addr4.sin_addr),port);
             if (length != strlen(device_list)) return -12;
           }
           if (peer->flags & WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL){
