@@ -6,7 +6,7 @@ on:
 #      - 'Release_notes.txt'
 #      - 'test_action'
     branches:
-      - 'main'
+      - 'master'
 
 env:
   RELEASE_VERSION: '0.4.1'
