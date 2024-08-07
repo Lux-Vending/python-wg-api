@@ -258,15 +258,15 @@ int get_devices(char *device_list, unsigned long int max_size)
         if (length != strlen(device_list)) return -6;
       }
 
-      if (device->flags & WGDEVICE_HAS_LISTEN_PORT) {
-        length += snprintf(device_list+length,max_size-length,"\"listen_port\" : %d,",device->listen_port);
-        if (length != strlen(device_list)) return -7;
-      }
+      //if (device->flags & WGDEVICE_HAS_LISTEN_PORT) {
+      length += snprintf(device_list+length,max_size-length,"\"listen_port\" : %d,",device->listen_port);
+      if (length != strlen(device_list)) return -7;
+      //}
 
-      if (device->flags & WGDEVICE_HAS_FWMARK) {
-        length += snprintf(device_list+length,max_size - length,"\"fwmark\" : %d,",device->fwmark);
-        if (length != strlen(device_list)) return -8;
-      }
+      //if (device->flags & WGDEVICE_HAS_FWMARK) {
+      length += snprintf(device_list+length,max_size - length,"\"fwmark\" : %d,",device->fwmark);
+      if (length != strlen(device_list)) return -8;
+      //}
 
       length += snprintf(device_list+length,max_size - length,"\"peers\":[");
       if (length != strlen(device_list)) return -9;
