@@ -78,6 +78,96 @@ void add_client_device(char *device_name, wg_key private_key)
 
 /**
  * Add a peer to device 'device_name'.
+ */
+void add_peer(char *device_name, unsigned char *public_key, unsigned char *preshared_key, char *allowed_ip_address, uint16_t allowed_ip_address_cidr, uint16_t persistent_keepalive)
+{
+    wg_allowedip allowed_ip;
+    bzero(&allowed_ip, sizeof (allowed_ip));
+    inet_pton(AF_INET, allowed_ip_address, &allowed_ip.ip4);
+    allowed_ip.family = AF_INET;
+    allowed_ip.cidr = allowed_ip_address_cidr;
+
+    wg_peer new_peer = {
+        .flags = WGPEER_HAS_PUBLIC_KEY | WGPEER_HAS_PRESHARED_KEY | WGPEER_REPLACE_ALLOWEDIPS | WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL
+    };
+
+    new_peer.first_allowedip = &allowed_ip;
+    new_peer.last_allowedip = &allowed_ip;
+    new_peer.persistent_keepalive_interval = persistent_keepalive;
+    memcpy(new_peer.public_key, public_key, sizeof(new_peer.public_key));
+    memcpy(new_peer.preshared_key, preshared_key, sizeof(new_peer.preshared_key));
+    wg_device *device;
+    if(wg_get_device(&device, device_name) < 0) {
+        perror("Unable to get device");
+        exit(1);
+    }
+    wg_peer *peer;
+    if (device->last_peer == NULL) {
+        device->first_peer = &new_peer;
+        device->last_peer = &new_peer;
+    } else {
+        peer = device->last_peer;
+        peer->next_peer = &new_peer;
+        device->last_peer = &new_peer;
+    }
+
+    wg_set_device(device);
+}
+
+/**
+ * Add a peer to device 'device_name'.
+ */
+void add_peer_endpoint(char *device_name, unsigned char *public_key, unsigned char *preshared_key, char *allowed_ip_address, uint16_t allowed_ip_address_cidr, char *peer_ip_address, char *ip_address, uint16_t port, uint16_t persistent_keepalive)
+{
+    struct sockaddr_in dest_addr;
+    bzero(&dest_addr, sizeof (dest_addr));
+    dest_addr.sin_family = AF_INET;
+    dest_addr.sin_port = htons(port);
+    inet_pton(AF_INET, ip_address, &dest_addr.sin_addr);
+
+    wg_allowedip allowed_ip;
+    bzero(&allowed_ip, sizeof (allowed_ip));
+    inet_pton(AF_INET, allowed_ip_address, &allowed_ip.ip4);
+    allowed_ip.family = AF_INET;
+    allowed_ip.cidr = allowed_ip_address_cidr;
+
+    wg_allowedip peer_ip;
+    bzero(&peer_ip, sizeof (peer_ip));
+    inet_pton(AF_INET, peer_ip_address, &peer_ip.ip4);
+    peer_ip.family = AF_INET;
+    peer_ip.cidr = 32;
+    peer_ip.next_allowedip = &allowed_ip;
+
+    wg_peer new_peer = {
+        .flags = WGPEER_HAS_PUBLIC_KEY | WGPEER_HAS_PRESHARED_KEY | WGPEER_REPLACE_ALLOWEDIPS | WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL
+    };
+
+    new_peer.endpoint.addr4 = dest_addr;
+    new_peer.first_allowedip = &peer_ip;
+    new_peer.last_allowedip = &allowed_ip;
+    new_peer.persistent_keepalive_interval = persistent_keepalive;
+    memcpy(new_peer.public_key, public_key, sizeof(new_peer.public_key));
+    memcpy(new_peer.preshared_key, preshared_key, sizeof(new_peer.preshared_key));
+    wg_device *device;
+    if(wg_get_device(&device, device_name) < 0) {
+        perror("Unable to get device");
+        exit(1);
+    }
+    wg_peer *peer;
+    if (device->last_peer == NULL) {
+        device->first_peer = &new_peer;
+        device->last_peer = &new_peer;
+    } else {
+        peer = device->last_peer;
+        peer->next_peer = &new_peer;
+        device->last_peer = &new_peer;
+    }
+
+    wg_set_device(device);
+}
+
+/**
+ * Add a peer to device 'device_name'.
  * @param device_name
  * @param public_key
  * @param ip_address
