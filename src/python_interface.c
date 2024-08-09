@@ -138,22 +138,41 @@ void add_peer_endpoint(char *device_name, unsigned char *public_key, unsigned ch
     peer_ip.cidr = 32;
     peer_ip.next_allowedip = &allowed_ip;
 
-    wg_peer new_peer = {
-        .flags = WGPEER_HAS_PUBLIC_KEY | WGPEER_HAS_PRESHARED_KEY | WGPEER_REPLACE_ALLOWEDIPS | WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL
-    };
+    wg_peer new_peer;
+    new_peer.flags = 0;  // WGPEER_HAS_PUBLIC_KEY | WGPEER_HAS_PRESHARED_KEY | WGPEER_REPLACE_ALLOWEDIPS | WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
+
+    if (public_key != NULL) {
+      new_peer.flags |= WGPEER_HAS_PUBLIC_KEY;
+      memcpy(new_peer.public_key, public_key, sizeof(new_peer.public_key));
+    }
+
+    //TODO: This doesn't seem to work!!! It creates a separate peer with just some random public key?!
+    // not using preshared key so disabled for now.
+    if (preshared_key != NULL) {
+      new_peer.flags |=  WGPEER_HAS_PRESHARED_KEY;
+      memcpy(new_peer.preshared_key, preshared_key, sizeof(new_peer.preshared_key));
+    }
+
+    if (strlen(allowed_ip_address) > 0) {
+      new_peer.flags |=  WGPEER_REPLACE_ALLOWEDIPS;
+    }
+
+    if (persistent_keepalive>0) {
+      new_peer.flags |= WGPEER_HAS_PERSISTENT_KEEPALIVE_INTERVAL;
+      new_peer.persistent_keepalive_interval = persistent_keepalive;
+    }
 
     new_peer.endpoint.addr4 = dest_addr;
     new_peer.first_allowedip = &peer_ip;
-    new_peer.last_allowedip = &allowed_ip;
-    new_peer.persistent_keepalive_interval = persistent_keepalive;
-    memcpy(new_peer.public_key, public_key, sizeof(new_peer.public_key));
-    memcpy(new_peer.preshared_key, preshared_key, sizeof(new_peer.preshared_key));
+
     wg_device *device;
     if(wg_get_device(&device, device_name) < 0) {
         perror("Unable to get device");
         exit(1);
     }
+
     wg_peer *peer;
+
     if (device->last_peer == NULL) {
         device->first_peer = &new_peer;
         device->last_peer = &new_peer;
@@ -203,6 +222,7 @@ void add_server_peer(char *device_name, unsigned char *public_key, char *ip_addr
     if (device->last_peer == NULL) {
         device->first_peer = &new_peer;
         device->last_peer = &new_peer;
+        new_peer.next_peer = NULL;
     } else {
         peer = device->last_peer;
         peer->next_peer = &new_peer;

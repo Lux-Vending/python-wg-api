@@ -70,6 +70,32 @@ def server_add_peer(device_name, public_key, local_ip):
     '''
     c_library.add_client_peer(device_name.encode(), public_key, local_ip.encode())
 
+def add_peer_endpoint(device_name, public_key, preshared_key, allowed_ip_address, allowed_ip_address_cidr, peer_ip_address, ip_address, port, persistent_keepalive):
+    '''
+    Add a peer to device 'device_name'.
+    '''
+
+    if preshared_key:
+        psk=key_from_base64(preshared_key)
+    else:
+        psk=None
+
+    if public_key:
+        pubk=key_from_base64(public_key)
+    else:
+        pubk=None
+
+    c_library.add_peer_endpoint(
+        device_name.encode(),
+        pubk,
+        psk,
+        allowed_ip_address.encode(),
+        int(allowed_ip_address_cidr),
+        peer_ip_address.encode(),
+        ip_address.encode(),
+        int(port),
+        int(persistent_keepalive))
+
 def delete_device(name):
     '''
     Delete interface :name:
