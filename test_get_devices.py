@@ -24,7 +24,7 @@ while True:
     print(f"  MEM_CACHE_SIZE changed, new size is ={MEM_CACHE_SIZE}, result len={len(RESULT)}, return code was {ret}")
 
 print(f"length = {len(RESULT)}")
-print(RESULT)
+print(f"rc={ret}, result={RESULT}")
 print()
 device_list=json.loads(RESULT)
 RESULT=""

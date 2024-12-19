@@ -435,6 +435,11 @@ int get_devices(char *device_list, unsigned long int max_size)
     }
 
     free(device_names);
-    device_list[length-1]='}'; // replace "}," with "}}"
+    if (length < 2){ //no devices found
+      strcpy(device_list,"{}");
+      length=strlen(device_list);
+    } else {
+      device_list[length-1]='}'; // replace "}," with "}}"
+    }
     return length;
 }
