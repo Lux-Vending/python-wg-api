@@ -1,6 +1,9 @@
 '''
 This file contains functions for directly interacting with the Wireguard shared objects file.
 '''
+# pylint: disable-next=too-many-arguments
+# pylint: disable-next=too-many-positional-arguments
+
 from ctypes import CDLL, c_ushort, create_string_buffer
 import re
 import os
@@ -70,8 +73,6 @@ def server_add_peer(device_name, public_key, local_ip):
     '''
     c_library.add_client_peer(device_name.encode(), public_key, local_ip.encode())
 
-# pylint: disable-next=too-many-arguments
-# pylint: disable-next=too-many-positional-arguments
 def add_peer_endpoint(device_name,
                       public_key,
                       preshared_key,
