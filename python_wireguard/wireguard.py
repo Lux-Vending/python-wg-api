@@ -71,6 +71,7 @@ def server_add_peer(device_name, public_key, local_ip):
     c_library.add_client_peer(device_name.encode(), public_key, local_ip.encode())
 
 # pylint: disable-next=too-many-arguments
+# pylint: disable-next=too-many-positional-arguments
 def add_peer_endpoint(device_name,
                       public_key,
                       preshared_key,
