@@ -70,7 +70,15 @@ def server_add_peer(device_name, public_key, local_ip):
     '''
     c_library.add_client_peer(device_name.encode(), public_key, local_ip.encode())
 
-def add_peer_endpoint(device_name, public_key, preshared_key, allowed_ip_address, allowed_ip_address_cidr, peer_ip_address, ip_address, port, persistent_keepalive):
+# pylint: disable-next=too-many-arguments
+def add_peer_endpoint(device_name,
+                      public_key,
+                      preshared_key,
+                      allowed_ip_address,
+                      allowed_ip_address_cidr,
+                      peer_ip_address,
+                      ip_address, port,
+                      persistent_keepalive):
     '''
     Add a peer to device 'device_name'.
     '''
