@@ -9,7 +9,7 @@ on:
       - 'master'
 
 env:
-  RELEASE_VERSION: '0.4.6'
+  RELEASE_VERSION: '0.4.7'
   ARCH: 'all'
   MAINTAINER: 'bofh@bitaccess.co'
   DESC: 'bitaccess wireguard api'
@@ -28,6 +28,9 @@ jobs:
           - os: ubuntu-22.04
             codename: jammy
             major: 22
+          - os: ubuntu-24.04
+            codename: noble
+            major: 24
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
